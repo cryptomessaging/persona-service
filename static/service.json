@@ -1,0 +1,9 @@
+{
+    "name": "Persona Service",
+    "version": [0,1,0],
+    "pid": "qw345gfhhdjd",
+    "controller": {
+        "url": "https://persona-controller.cryptomessaging.org"
+    },
+    "ttl": "86400"
+}

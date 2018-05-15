@@ -1,0 +1,16 @@
+# Users Environment Variables
+.lock-wscript
+.DS_Store
+
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+# Node
+node_modules
+
+# Lambda
+function-code.zip
+
