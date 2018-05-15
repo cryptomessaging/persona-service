@@ -5,27 +5,31 @@ A registry for cryptomessaging persona information.
 This project currently supports two production platforms: Lambda+Node and Elastic Beanstalk+Node+Express.  We hope many more are supported in the future!
 
 
-## Local testing of the Lambda service
+## Local testing of the Persona Service
 
 The following assumes you have installed Git and Node.js, and are running on a Mac.
 
-$ git clone <address>
+$ git clone https://github.com/cryptomessaging/persona-service.git
+$ cd persona-service
+$ npm install
 $ export LOCAL_S3_SIMULATOR_DIR=~/s3simulator
 $ node index 
+
 
 ## API
 
 The Persona Service is an asymetric HTTP service, where infrequent Restful write requests are executed against one DNS resolved endpint (i.e. a Lambda function) and high frequency read requests are serviced by an edge caching network such as CloudFront.  It is recommended that all requests use HTTPS for security.
 
-### Restful HTTP API
 
-Read requests are serviced by CloudFront and generally follow the pattern of returning an HTTP status 200 and the response body.  ALL requests to paths under /personas will include the following response headers:
+### HTTP Read Requests
 
-- x-certify: CMSig
+Read requests are serviced by CloudFront, do not require authentication, and generally follow the pattern of returning an HTTP status 200 and the response body.  ALL requests to paths under /personas will include the following response headers:
+
+- x-certify: EdCert ...
 - x-created: <date>
-- x-content-hash CRC32C value
-- content-type
-- content-length
+- x-content-hash: CRC32C value
+- content-type:
+- content-length:
 
 Clients can confirm the authenticity of a persona file by verifying the signature in the x-certify response header.
 
