@@ -1,9 +1,9 @@
 {
     "name": "Persona Service",
     "version": [0,1,0],
-    "pid": "qw345gfhhdjd",
+    "pid": "YTy-H5bqkg2pIMBHcKT4bOKbq8yijYk2iqOgN20ND6Q",
     "controller": {
-        "url": "https://persona-controller.cryptomessaging.org"
+        "url": "https://9xpmv3ybj8.execute-api.us-west-2.amazonaws.com/v1"
     },
     "ttl": "86400"
 }

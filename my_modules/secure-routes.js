@@ -10,7 +10,7 @@ module.exports = function( express, s3 ) {
             if(err)
                 return net.signalError(req,res,err);
             if( !auth )
-                return net.signNotOk(req,res,[4],'Request requires EdSig authentication');
+                return net.signalNotOk(req,res,[4],'Request requires EdSig authentication');
             
             req.auth = auth;
             next();
@@ -18,18 +18,27 @@ module.exports = function( express, s3 ) {
     });
 
     router.post( '/personas/:pid/:path(*)',function(req,res){
+        // make sure :pid matches auth
+        if( req.params.pid != req.auth.pid )
+            return net.signalNotOk(req,res,[4],'EdSig authentication doesnt match pid');
+
         // make sure the content is certified
         edsig.verifyContentSignature( req, (err,auth) => {
             if(err)
                 return net.signalError(req,res,err);
- 
-            let path = req.params.pid + '/' + req.params.path;
+            if( req.params.pid != req.auth.pid )
+                return net.signalNotOk(req,res,[4],'EdSig certification doesnt match pid');
+
+            let path = 'personas/' + req.params.pid + '/' + req.params.path;
             let media = req.body;
             let options = {
-                metadata: {},
+                metadata: {
+                    "certification": req.headers['x-certification'],
+                    "content-hash": req.headers['x-content-hash'],
+                    "created": req.headers['x-created']
+                },
                 contentType: req.headers['content-type']
             };
-            console.log( 'POST persona', path, options );
             s3.saveMedia(path,media,options,(err,result) => {
                 if(err)
                     net.signalError(req,res,err);
@@ -40,6 +49,5 @@ module.exports = function( express, s3 ) {
     });
 
     console.log( 'Secure API routes are ready' );
-
     return router;
 }

@@ -2,37 +2,40 @@
 
 A registry for cryptomessaging persona information.
 
-This project currently supports two production platforms: Lambda+Node and Elastic Beanstalk+Node+Express.  We hope many more are supported in the future!
+This project currently supports two production platforms: Lambda+Node and Elastic Beanstalk+Node.  We hope many more are supported in the future!
 
 
 ## Local testing of the Persona Service
 
 The following assumes you have installed Git and Node.js, and are running on a Mac.
 
-    $ git clone https://github.com/cryptomessaging/persona-service.git
-    $ cd persona-service
-    $ npm install
-    $ export LOCAL_S3_SIMULATOR_DIR=~/s3simulator
-    $ node index 
+<code>
+$ git clone https://github.com/cryptomessaging/persona-service.git
+$ cd persona-service
+$ npm install
+$ export LOCAL_S3_SIMULATOR_DIR=~/s3simulator
+$ node index
+</code> 
+
 
 ## API
 
-The Persona Service is an asymetric HTTP service, where infrequent Restful write requests are executed against one DNS resolved endpint (i.e. a Lambda function) and high frequency read requests are serviced by an edge caching network such as CloudFront.  It is recommended that all requests use HTTPS for security.
+The Persona Service is an asymetric HTTP service, where infrequent Restful write requests are executed against one Internet service (i.e. a Lambda function) and high frequency read requests are handled by an edge caching network such as CloudFront.  It is recommended that all requests use HTTPS for security.
 
 
 ### HTTP Read Requests
 
 Read requests are serviced by CloudFront, do not require authentication, and generally follow the pattern of returning an HTTP status 200 and the response body.  ALL requests to paths under /personas will include the following response headers:
 
-- x-certify: EdCert ...
+- x-certification: EdSig ...
 - x-created: <date>
 - x-content-hash: CRC32C value
 - content-type:
 - content-length:
 
-Clients can confirm the authenticity of a persona file by verifying the signature in the x-certify response header.
+Clients can confirm the authenticity of a persona file by verifying the signature in the x-certification response header.
 
-Write requests are serviced by a dedicated Restful service, which is specified in a configuration file located at /service.json at controller.url.
+Write requests are serviced by a dedicated Restful service, which is specified in a configuration file located at /service.json under the "controller" property, as "url".  The following is an example of a service.json file:
 <pre>
 {
     "name": "Persona Service",
@@ -45,7 +48,7 @@ Write requests are serviced by a dedicated Restful service, which is specified i
 }
 </pre>
 
-All write requests require the HTTP "authorization" header to have a CMSig value.  If a write request is updating a file under a persona, then the file being updated also requires an "x-cm-signature" header.
+All write requests require the HTTP "authorization" header to have a EdSig value.  If a write request is updating a file under a persona, then the file being updated also requires an "x-certification" header.
 
 An HTTP 200 response indicates success.  Due to the nature of edge caching, new files will be immediately available, but updated files may continue to show the stale file for up to the previous files TTL value.
 

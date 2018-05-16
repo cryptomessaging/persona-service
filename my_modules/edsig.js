@@ -8,6 +8,7 @@ const DEBUG = true;
 // For testing...
 let secret = Buffer.from( "UG8HnBjdfbcxmCGgHkHAVGDezaOXXJAKZ222BU5_YLs", 'base64' );    // actually base64url
 const TEST_KEYPAIR = ec.keyFromSecret(secret);
+console.log( 'Test pid', base64url( Buffer.from( TEST_KEYPAIR.getPublic() ) ) );
 
 //
 // Authorization is used to verify who is making an HTTP request
@@ -28,20 +29,20 @@ exports.verifyRequestSignature = function(req,callback) {
             return callback();  // it's ok!
 
         // verify specific EdSig request headers and CRC32C of body (if present)
-        let reqbytes = reqToBytes( req );
+        let reqbytes = reqSummaryToBytes( req );
         let success = authorization.pubkey.verify(reqbytes, authorization.sighex);
 
         if( DEBUG) console.log( 'Verified?', success );
         if( success )
             callback(null,{ type:'edsig', pid:authorization.keypath[0] });
         else
-            callback( new net.ServerError([4],'EdSig signature check failed' ) );
+            callback( new net.ServerError([4],'EdSig authorization check failed' ) );
     });
 }
 
 // convert HTTP request to a Buffer
 // req { body:, method:, originalUrl:, headers: }
-function reqToBytes(req) {
+function reqSummaryToBytes(req) {
 
     // TODO: Remove!  For testing...
     // do a crc32c of the body and add to request
@@ -61,13 +62,14 @@ function reqToBytes(req) {
         message += '\n' + value;
     });
 
+    if( DEBUG ) console.log( 'contentSummaryToBytes()', message );
     return Buffer.from( message );
 }
 
 // Create an authorization header value from the given Node Request object and an EC keypair
 function createAuthorization( req, keypair ) {
     // Convert request summary to bytes and sign
-    var msg = reqToBytes( req );
+    var msg = reqSummaryToBytes( req );
     var sigbytes = Buffer.from( keypair.sign(msg).toBytes() );
 
     // extract public key bytes
@@ -83,6 +85,7 @@ function createAuthorization( req, keypair ) {
 //
 
 // callback(err,auth)
+// auth = { type:'edsig', pid: }
 exports.verifyContentSignature = function(req,callback) {
     let path = req.originalUrl;
     let body = req.body;
@@ -110,7 +113,7 @@ exports.verifyContentSignature = function(req,callback) {
         if( success )
             callback(null,{ type:'edsig', pid:certification.keypath[0] });
         else
-            callback( new net.ServerError([4],'EdSig signature check failed' ) );
+            callback( new net.ServerError([4],'EdSig certification check failed' ) );
     });
 }
 
@@ -138,6 +141,7 @@ function contentSummaryToBytes(path,body,headers) {
         message += '\n' + value;
     });
 
+    if( DEBUG ) console.log( 'contentSummaryToBytes()', message );
     return Buffer.from( message );
 }
 
