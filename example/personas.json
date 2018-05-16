@@ -1,0 +1,42 @@
+{
+    "group_services": [
+        {
+            "name": "Chat",
+            "url": "https://chat.cryptomessaging.org"
+        },
+        {
+            "name": "Stories",
+            "url": "https://stories.cryptomessaging.org"
+        }
+    ],
+    "persona_services": [
+        {
+            "name": "Prime",
+            "url": "https://personas.cryptomessaging.org"
+        }
+    ],
+    "push_services": [
+        {
+            "name": "Prime",
+            "url": "https://push.cryptomessaging.org"
+        }
+    ],
+    "personas": {
+        "abc": {
+            "nickname": "Bob Dole",
+            "tagline": "VP",
+            "keypair": {
+                "type": "ed25519",
+                "secret": "UG8HnBjdfbcxmCGgHkHAVGDezaOXXJAKZ222BU5_YLs"
+            },
+            "images": {
+                "full": {
+                    "url": "images/full.jpg"
+                },
+                "100": {
+                    "url": "images/100.jpg"
+                }
+            }
+        }
+    }
+}

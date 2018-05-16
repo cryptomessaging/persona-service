@@ -18,18 +18,24 @@ module.exports = function( express, s3 ) {
     });
 
     router.post( '/personas/:pid/:path(*)',function(req,res){
-        let path = req.params.pid + '/' + req.params.path;
-        let media = req.body;
-        let options = {
-            metadata: {},
-            contentType: req.headers['content-type']
-        };
-        console.log( 'POST persona', path, options );
-        s3.saveMedia(path,media,options,(err,result) => {
+        // make sure the content is certified
+        edsig.verifyContentSignature( req, (err,auth) => {
             if(err)
-                net.signalError(req,res,err);
-            else
-                res.json({});
+                return net.signalError(req,res,err);
+ 
+            let path = req.params.pid + '/' + req.params.path;
+            let media = req.body;
+            let options = {
+                metadata: {},
+                contentType: req.headers['content-type']
+            };
+            console.log( 'POST persona', path, options );
+            s3.saveMedia(path,media,options,(err,result) => {
+                if(err)
+                    net.signalError(req,res,err);
+                else
+                    res.json({});
+            });
         });
     });
 
