@@ -1,7 +1,7 @@
 {
   "name": "persona-service",
   "version": "1.0.0",
-  "description": "Provides storage of persona information",
+  "description": "Provides storage of cryptomessaging persona information",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,7 +11,7 @@
     "url": "git+https://github.com/cryptomessaging/persona-service.git"
   },
   "author": "Mike Prince",
-  "license": "GPL-3.0",
+  "license": "GPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/cryptomessaging/persona-service/issues"
   },
