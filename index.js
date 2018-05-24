@@ -33,5 +33,5 @@ app.use(require('morgan')('combined'));
 
 const port = process.env.PORT || 3030
 app.listen(port, () => 
-  console.log(`Persona Server is listening on port ${port}.`)
+    console.log(`Persona Server is listening on port ${port}`)
 )

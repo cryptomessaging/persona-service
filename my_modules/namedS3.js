@@ -1,7 +1,7 @@
 const S3 = require('aws-sdk/clients/s3');
 const s3 = new S3({region: 'us-west-2'});
 
-const DEBUG = true;
+const DEBUG = false;
 
 // For local development and light testing
 const fs = require('fs');
@@ -158,7 +158,7 @@ function localSave( localDir, params, next ) {
         // write the metadata as JSON
         const metafile = filename + '.meta';
         delete params.Body;
-        const json = JSON.stringify(params);
+        const json = JSON.stringify(params,null,4);
         if( DEBUG )
             console.log( 'Saving media metadata of',json,'to',metafile);
 

@@ -5,39 +5,40 @@ const ec = new EdDSA('ed25519')
 const net = require('./net')
 const DEBUG = true;
 
+function keypairFromSecret(secret) {
+    let buf = Buffer.from( secret, 'base64' );    // actually base64url
+    return ec.keyFromSecret(buf);    
+}
+exports.keypairFromSecret = keypairFromSecret;
+
 // For testing...
-let secret = Buffer.from( "UG8HnBjdfbcxmCGgHkHAVGDezaOXXJAKZ222BU5_YLs", 'base64' );    // actually base64url
-const TEST_KEYPAIR = ec.keyFromSecret(secret);
-console.log( 'Test pid', base64url( Buffer.from( TEST_KEYPAIR.getPublic() ) ) );
+const TEST_KEYPAIR = keypairFromSecret("UG8HnBjdfbcxmCGgHkHAVGDezaOXXJAKZ222BU5_YLs");
 
 //
 // Authorization is used to verify who is making an HTTP request
 //
 
 // req { body:, method:, originalUrl:, headers: }
-// callback(err,null or { type:'edsig', pid:<base64url> })
-exports.verifyRequestSignature = function(req,callback) {
+// returns { type:'edsig', pid:<base64url> })
+exports.verifyRequestSignature = function(req) {
 
     // For FUN (and testing), what would the sig be for the test user (created below)?
-    createAuthorization( req, TEST_KEYPAIR );
+    //createAuthorization( req, TEST_KEYPAIR );
 
     // crack open the authorization header to get the public key and signature
-    parseSignature(req.headers,'authorization',(err,authorization) => {
-        if(err)
-            return callback(err);
-        if(!authorization)
-            return callback();  // it's ok!
+    let authorization = parseSignature(req.headers,'authorization');
+    if(!authorization)
+        return;  // it's ok!
 
-        // verify specific EdSig request headers and CRC32C of body (if present)
-        let reqbytes = reqSummaryToBytes( req );
-        let success = authorization.pubkey.verify(reqbytes, authorization.sighex);
+    // verify specific EdSig request headers and CRC32C of body (if present)
+    let reqbytes = reqSummaryToBytes( req );
+    let success = authorization.pubkey.verify(reqbytes, authorization.sighex);
 
-        if( DEBUG) console.log( 'Verified?', success );
-        if( success )
-            callback(null,{ type:'edsig', pid:authorization.keypath[0] });
-        else
-            callback( new net.ServerError([4],'EdSig authorization check failed' ) );
-    });
+    if( DEBUG) console.log( 'Verified?', success );
+    if( success )
+        return { type:'edsig', pid:authorization.keypath[0] };
+    else
+        throw new net.ServerError([4],'EdSig authorization check failed' );
 }
 
 // convert HTTP request to a Buffer
@@ -46,8 +47,10 @@ function reqSummaryToBytes(req) {
 
     // TODO: Remove!  For testing...
     // do a crc32c of the body and add to request
-    const bodyHash = crc32c.calculate( req.body );
-    req.headers['x-content-hash'] = 'CRC32C ' + bodyHash;
+    if( !req.headers['x-content-hash'] ) {
+        const bodyHash = crc32c.calculate( req.body );
+        req.headers['x-content-hash'] = 'CRC32C ' + bodyHash.toString(16);
+    }
 
     // message is "METHOD path\nheader1value\nheader2value\n...header3value"  (NOTE: NO trailing \n)
     const signHeaders = [
@@ -67,75 +70,83 @@ function reqSummaryToBytes(req) {
 }
 
 // Create an authorization header value from the given Node Request object and an EC keypair
-function createAuthorization( req, keypair ) {
+// req { body:, method:, originalUrl:, headers: }
+// keypair is elliptic keypair
+// Keypath is <pid>[@host1[,host2]...][:subkey]
+function createAuthorization( req, keypair, keypath ) {
     // Convert request summary to bytes and sign
     var msg = reqSummaryToBytes( req );
     var sigbytes = Buffer.from( keypair.sign(msg).toBytes() );
 
-    // extract public key bytes
-    let pubbytes = Buffer.from( keypair.getPublic() );
+    if( !keypath ) {
+        // extract public key bytes
+        let pubbytes = Buffer.from( keypair.getPublic() );
+        keypath = base64url(pubbytes);
+    }
 
-    let edsig = 'EdSig kp=' + base64url(pubbytes) + ',sig=' + base64url(sigbytes);
+    let edsig = 'EdSig kp=' + keypath + ',sig=' + base64url(sigbytes);
     if( DEBUG) console.log( 'Created authorization', edsig );
     return edsig;
+}
+
+exports.addAuthorization = function( req, keypair, keypath ) {
+    req.headers.authorization = createAuthorization( req, keypair, keypath );
 }
 
 //
 // Certification is provided by the owner of content
 //
 
-// callback(err,auth)
-// auth = { type:'edsig', pid: }
-exports.verifyContentSignature = function(req,callback) {
-    let path = req.originalUrl;
+// pathname is from http://hostname/<pathname>?querystring...
+// req = { body:, headers: }
+// returns { type:'edsig', pid: }
+exports.verifyContentSignature = function(pathname,req) {
     let body = req.body;
     let headers = {
         "content-length": req.headers['content-length'],
         "content-type": req.headers['content-type'],
         "x-created": req.headers['x-created']
     };
-    let contentbytes = contentSummaryToBytes( path, body, headers );
+    let contentbytes = contentSummaryToBytes( pathname, body, headers );
 
     // For FUN, what should it be?
-    createCertification( path, body, headers, TEST_KEYPAIR );
+    //createCertification( pathname, body, headers, TEST_KEYPAIR );
 
     // crack open the certification header to get the public key and signature
-    parseSignature(req.headers,'x-certification',(err,certification) => {
-        if(err)
-            return callback(err);
-        if(!certification)
-            return callback(new net.ServerError([4],'Missing required header: X-Certification' ));
+    let certification = parseSignature(req.headers,'x-certification');
+    if(!certification)
+        throw new net.ServerError([4],'Missing required header: X-Certification' );
 
-        // verify specific EdSig request headers and CRC32C of body (if present)
-        let success = certification.pubkey.verify(contentbytes, certification.sighex);
+    // verify specific EdSig request headers and CRC32C of body (if present)
+    let success = certification.pubkey.verify(contentbytes, certification.sighex);
 
-        if( DEBUG) console.log( 'Certified?', success );
-        if( success )
-            callback(null,{ type:'edsig', pid:certification.keypath[0] });
-        else
-            callback( new net.ServerError([4],'EdSig certification check failed' ) );
-    });
+    if( DEBUG) console.log( 'Certified?', success );
+    if( success )
+        return { type:'edsig', pid:certification.keypath[0] };
+    else
+        throw new net.ServerError([4],'EdSig certification check failed' );
 }
 
 // convert content summary(CRC of body,headers,path) to byte Buffer
 // headers { content-length, content-type, x-created }
-function contentSummaryToBytes(path,body,headers) {
+function contentSummaryToBytes(pathname,body,headers) {
+    console.log( 'contentSummaryToBytes()', pathname, body, headers );
 
     // do a crc32c of the body and add to request
     const bodyHash = crc32c.calculate( body );
-    headers['x-content-hash'] = 'CRC32C ' + bodyHash;
+    headers['x-content-hash'] = 'CRC32C ' + bodyHash.toString(16);
 
     if( !headers['x-created'] )
         headers['x-created'] = (new Date()).toISOString();
 
     // IMPORTANT to anchor the content to a place in the filesystem
-    // message is "path\nheader1value\nheader2value\n...header3value"  (NOTE: NO trailing \n)
+    // message is "pathname\nheader1value\nheader2value\n...header3value"  (NOTE: NO trailing \n)
     const signHeaders = [
         'content-length',
         'content-type',
         'x-created',
         'x-content-hash' ];     // order is important!
-    let message = path;
+    let message = pathname;
     signHeaders.forEach(name => {
         let value = headers[name] || '';
         message += '\n' + value;
@@ -145,37 +156,50 @@ function contentSummaryToBytes(path,body,headers) {
     return Buffer.from( message );
 }
 
-function createCertification( path, body, headers, keypair ) {
+// keypath is optional
+function createCertification( pathname, body, headers, keypair, keypath ) {
+    //console.log( 'createCertification()', pathname, body, headers );
     // Convert request to bytes and sign
-    var msg = contentSummaryToBytes( path, body, headers );
+    var msg = contentSummaryToBytes( pathname, body, headers );
     var sigbytes = Buffer.from( keypair.sign(msg).toBytes() );
 
-    // extract public key bytes
-    let pubbytes = Buffer.from( keypair.getPublic() );
+    if( !keypath ) {
+        // extract public key bytes
+        let pubbytes = Buffer.from( keypair.getPublic() );
+        keypath = base64url(pubbytes);
+    }
 
-    let edcert = 'EdSig kp=' + base64url(pubbytes) + ',sig=' + base64url(sigbytes);
+    let edcert = 'EdSig kp=' + keypath + ',sig=' + base64url(sigbytes);
     if( DEBUG) console.log( 'Created certification', edcert );
     return edcert;
+}
+
+// pathname is from http://hostname/<pathname>?querystring...
+// req { body:, headers: }
+// keypair is required
+// keypath is optional
+// Modifies the req.headers by adding the certification
+exports.addCertification = function( pathname, req, keypair, keypath ) {
+    req.headers.certification = createCertification( pathname, req.body, req.headers, keypair, keypath );
 }
 
 //
 // Util
 //
 
-// callback(err,result)
-// result = { pubkey:, sighex:, keypath:[ root/pid, child, ... ] }
-function parseSignature(headers,name,callback) {
+// result = NULL or { pubkey:, sighex:, keypath:[ root/pid, child, ... ] }
+function parseSignature(headers,name) {
     const signature = headers[name];
     if( !signature ) {
         if( DEBUG) console.log( 'No', name, 'header' );
-        return callback();
+        return;
     }
 
     const authFields = signature.split(/\s+/);
     if( authFields[0] != 'EdSig' ) {
-        return callback( new net.ServerError([4],'Unsupported auth scheme ' + authFields[0] + ' in ' + name ) );
+        throw new net.ServerError([4],'Unsupported auth scheme ' + authFields[0] + ' in ' + name );
     } else if( authFields.length < 2 ) {
-        return callback( new net.ServerError([4],'Missing required second EdSig parameter for ' + name ) );
+        throw new net.ServerError([4],'Missing required second EdSig parameter for ' + name );
     }
 
     // extract public key from authorization header
@@ -188,11 +212,11 @@ function parseSignature(headers,name,callback) {
     // extract 512 bit request signature from authorization header
     const sighex = Buffer.from( kvset.sig, 'base64' ).toString('hex'); 
 
-    callback( null,  {
+    return {
         pubkey: pubkey,
         sighex: sighex,
         keypath: keypath
-    });
+    };
 }
 
 // Convert a base64 buffer to a base64url string
@@ -207,6 +231,7 @@ function base64url(buffer){
 
     return base64url;
 }
+exports.base64url = base64url;
 
 function clean(y) {
     return y && trim(y);

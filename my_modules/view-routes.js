@@ -1,19 +1,22 @@
 const net = require('./net')
 
 //
-// Routes that don't require authentication
+// These routes are for debugging.
+// Normally these are handled by the edge caching network
 //
 
 module.exports = function( express, s3 ) {
     const router = express.Router();
 
-    // simple status page, also used for server health
-    const runningSince = new Date();
-    router.get( '/status', function(req,res) {
-        res.json({ version:[1,0,0], started:runningSince }); 
+    router.get( '/service.json',function(req,res){
+        s3.fetchMedia('service.json',(err,result) => {
+            if(err)
+                net.signalError(req,res,err);
+            else
+                sendMedia( req, res, result );
+        });
     });
 
-    // For debugging ONLY
     router.get( '/personas/:pid/:path(*)',function(req,res){
         let path = 'personas/' + req.params.pid + '/' + req.params.path;
         s3.fetchMedia(path,(err,result) => {
@@ -24,7 +27,7 @@ module.exports = function( express, s3 ) {
         });
     });
 
-    console.log( 'Open API routes are ready' );
+    console.log( 'DEBUG view routes are ready' );
     return router;
 }
 

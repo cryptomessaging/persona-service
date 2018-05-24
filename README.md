@@ -9,18 +9,39 @@ This project currently supports two production platforms: Lambda+Node and Elasti
 
 The following assumes you have installed Git and Node.js, and are running on a Mac.
 
-<code>
+Install the Persona Server and runit locally:
+<pre>
 $ git clone https://github.com/cryptomessaging/persona-service.git
 $ cd persona-service
 $ npm install
 $ export LOCAL_S3_SIMULATOR_DIR=~/s3simulator
 $ node index
-</code> 
+</pre>
 
+Install a command line interface (EdSig) for interacting with the Persona Service:
+<pre>
+$ npm install -g edsig-cli    
+</pre> 
 
 ## API
 
 The Persona Service is an asymetric HTTP service, where infrequent Restful write requests are executed against one Internet service (i.e. a Lambda function) and high frequency read requests are handled by an edge caching network such as CloudFront.  It is recommended that all requests use HTTPS for security.
+
+
+### Authentication and Certification with Personas
+
+The Persona service uses elliptic curve cryptography to digitally sign requests and content.  Personas are created with a 256 bit secret, which is used to generate a 256 bit public key using the Ed25519 curve. The public key is encoded as [base64url](https://tools.ietf.org/html/rfc4648#section-5) and is used as the globally unique persona id.
+
+To create a new persona nicknamed Satoshi using the edsig command line tool:
+<pre>
+$ edsig persona add "Satoshi"
+</pre>
+
+The above command echoes the new persona as JSON to the screen, and also writes that file to the ~/.cryptomessaging directory in a new directory with the same name as the newly created persona id, and in that new directory a file named persona.json
+
+The following examples in this README will use the Satoshi persona for authorization and certification.
+
+
 
 
 ### HTTP Read Requests
@@ -34,6 +55,9 @@ Read requests are serviced by CloudFront, do not require authentication, and gen
 - content-length:
 
 Clients can confirm the authenticity of a persona file by verifying the signature in the x-certification response header.
+
+
+### HTTP Write Requests
 
 Write requests are serviced by a dedicated Restful service, which is specified in a configuration file located at /service.json under the "controller" property, as "url".  The following is an example of a service.json file:
 <pre>
@@ -69,6 +93,50 @@ DELETE /personas/:personaid
 
 List one persona directory:
 GET /personas/:personaid/directory 
+
+### EdSig Authorization and Certification
+
+The Edwards Curve Signature (EdSig) uses the Edwards Curve (ed25519) to digitally sign summary information about HTTP requests or content.
+
+EdSig can be used to authorize an HTTP request by providing an HTTP 'Authorization' header.  The Authorization header value takes the form:
+<pre>
+Authorization: EdSig kp=&lt;persona id&gt;[:&lt;subkey name&gt;],sig=&lt;base64url encoded 512 bit signature&gt;
+</pre>
+The 'kp' parameter of the second header value token is the 'key path' and may either be a simple value representing the personas public key, or may be a compound value delimited by semicolons where the first value is the personas root public key, and the second value is the public key from the keypair that was used to sign this request.
+
+The <strong>persona id</strong> is a base64url encoded public key.  The signature is calculated as:
+<pre>
+keypair = An Ed25519 based keypair.  See the Elliptic NPM module for an example.
+method = HTTP request method, as 'GET", 'POST', etc.
+path = original path portion of the URL of request, such as '/personas/4234gsdflk23h23kj23/metapage.json'
+content-length = bytes in request body as an integer, this can be empty
+content-type = MIME type, such as 'application/json'
+date = ISO date string
+host = Host servicing this request
+x-content-hash = CRC32C hash of the content, prefixed with 'CRC32C', i.e. 'CRC32C 12334332767'
+
+summary = method + ' ' + path + LINEFEED + content-length + LINEFEED + content-type + LINEFEED + date + LINEFEED + host + LINEFEED + x-content-hash
+signature = base64urlEncode( keypair.sign(summary) )
+</pre>
+
+EdSig can also be used to certify the content in an HTTP response.  The Certification header value takes the form:
+<pre>
+Certification: EdSig kp=&lt;persona id&gt;[:&lt;subkey name&gt;],sig=&lt;base64url encoded 512 bit signature&gt;
+</pre>
+The values of the certification header are formed in the same manner as the Authorization header above.
+
+The signature for a certification is calculated as:
+<pre>
+keypair = An Ed25519 based keypair.  See the Elliptic NPM module for an example.
+path = original path portion of URL of request, such as '/personas/4234gsdflk23h23kj23/metapage.json'
+content-length = bytes in request body as an integer, this can be empty
+content-type = MIME type, such as 'application/json'
+created = ISO date string
+x-content-hash = CRC32C hash of the content, prefixed with 'CRC32C', i.e. 'CRC32C 12334332767'
+
+summary = path + LINEFEED + content-length + LINEFEED + content-type + LINEFEED + created + LINEFEED + x-content-hash
+signature = base64urlEncode( keypair.sign(summary) )
+</pre>
 
 
 ### Persona Service Directory Layout
