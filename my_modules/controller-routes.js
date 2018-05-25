@@ -115,10 +115,12 @@ module.exports = function( express, s3 ) {
 }
 
 function controllerBaseUrl(req) {
+    const PERSONAS_CONTROLLER_PATH_PREFIX = process.env.PERSONAS_CONTROLLER_PATH_PREFIX || '';
+
     let url = req.protocol + "://" + req.get('host') + req.originalUrl;
     url = url.split('?')[0];    // just in case there's a query string
     let lastSlash = url.lastIndexOf('/');
-    url = url.substring(0,lastSlash);
-    if( DEBUG ) console.log('controllerBaseUrl()', url, req );
-    return url;
+    let fixedurl = url.substring(0,lastSlash) + PERSONAS_CONTROLLER_PATH_PREFIX;
+    if( DEBUG ) console.log('controllerBaseUrl()', url, fixedurl );
+    return fixedurl;
 }
