@@ -9,12 +9,14 @@ This project currently supports two production platforms: Lambda+Node and Elasti
 
 The following assumes you have installed Git and Node.js, and are running on a Mac.
 
-Install the Persona Server and runit locally:
+Install the Persona Server and run it locally:
 <pre>
 $ git clone https://github.com/cryptomessaging/persona-service.git
 $ cd persona-service
 $ npm install
 $ export LOCAL_S3_SIMULATOR_DIR=~/s3simulator
+$ export PERSONAS_S3_BUCKET=personas.mydomain.com
+$ export PERSONAS_CONTROLLER_PATH_PREFIX=/v1
 $ node index
 </pre>
 

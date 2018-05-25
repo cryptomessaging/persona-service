@@ -8,8 +8,9 @@ const net = require('./net')
 module.exports = function( express, s3 ) {
     const router = express.Router();
 
-    router.get( '/service.json',function(req,res){
-        s3.fetchMedia('service.json',(err,result) => {
+    router.get( '/service.json|favicon.ico|index.html',function(req,res){
+        let path = req.originalUrl;
+        s3.fetchMedia(path,(err,result) => {
             if(err)
                 net.signalError(req,res,err);
             else
