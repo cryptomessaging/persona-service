@@ -67,12 +67,16 @@ module.exports = function( express, s3 ) {
     router.use(function(req, res, next) {
         try {
             let auth = edsig.verifyRequestSignature( req );
-            if( !auth )
+            if( !auth ) {
+                // they didn't pass an authorization header, but we need one to continue
                 return net.signalNotOk(req,res,[4],'Request requires EdSig authentication');
+            }
             
             req.auth = auth;
             next();
         } catch(err) {
+            // When processing an authorization header fails, we land here
+            console.error(err);
             net.signalError(req,res,err);   
         }
     });

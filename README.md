@@ -152,7 +152,7 @@ The recommended layout of files is:
 <pre>
 /personas/
     &lt;your persona id&gt;/
-        metapage.json
+        persona.json
         keyring.json
         keyring/
             &lt;key id&gt;.json
@@ -262,6 +262,11 @@ TBD
     - Deployment stage: v1
     - Security: Open
     - "Add"
+
+    Make sure to set these Environment variables
+    - PERSONAS_CONTROLLER_PATHNAME_PREFIX=v1
+    - PERSONAS_S3_BUCKET=&lt;your bucket name&gt;
+    - PERSONAS_CONTROLLER_PROTOCOL=https
 
 7. Create API proxy gateway
     - API name: personaService
