@@ -3,6 +3,8 @@ const path = require('path')
 const edsig = require('edsig')
 const net = require('./net')
 
+const DEBUG = true;
+
 module.exports = function( express, s3 ) {
     var router = express.Router();
 
@@ -116,5 +118,7 @@ function controllerBaseUrl(req) {
     let url = req.protocol + "://" + req.get('host') + req.originalUrl;
     url = url.split('?')[0];    // just in case there's a query string
     let lastSlash = url.lastIndexOf('/');
-    return url.substring(0,lastSlash);
+    url = url.substring(0,lastSlash);
+    if( DEBUG ) console.log('controllerBaseUrl()', url, req );
+    return url;
 }
