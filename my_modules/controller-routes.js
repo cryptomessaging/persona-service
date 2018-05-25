@@ -53,6 +53,7 @@ module.exports = function( express, s3 ) {
                 });
             }
 
+            console.log( 'Uploading', '/' + filename, 'to S3' );
             s3.saveMedia(filename,file,options,err => {
                 if(err)
                     reject(err);
@@ -114,13 +115,16 @@ module.exports = function( express, s3 ) {
     return router;
 }
 
+// Determine the this services controller base url.  Some platforms, like Lambda, don't pass
+// through the complete the complete URL pathname, in which case the
+// PERSONAS_CONTROLLER_PATHNAME_PREFIX can be used to adjust it.
 function controllerBaseUrl(req) {
-    const PERSONAS_CONTROLLER_PATH_PREFIX = process.env.PERSONAS_CONTROLLER_PATH_PREFIX || '';
+    const PERSONAS_CONTROLLER_PATHNAME_PREFIX = process.env.PERSONAS_CONTROLLER_PATHNAME_PREFIX || '';
 
     let url = req.protocol + "://" + req.get('host') + req.originalUrl;
     url = url.split('?')[0];    // just in case there's a query string
     let lastSlash = url.lastIndexOf('/');
-    let fixedurl = url.substring(0,lastSlash) + PERSONAS_CONTROLLER_PATH_PREFIX;
+    let fixedurl = url.substring(0,lastSlash) + PERSONAS_CONTROLLER_PATHNAME_PREFIX;
     if( DEBUG ) console.log('controllerBaseUrl()', url, fixedurl );
     return fixedurl;
 }

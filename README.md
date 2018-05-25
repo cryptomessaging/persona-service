@@ -9,21 +9,24 @@ This project currently supports two production platforms: Lambda+Node and Elasti
 
 The following assumes you have installed Git and Node.js, and are running on a Mac.
 
-Install the Persona Server and run it locally:
+1. Install the Persona Server and run it locally:
 <pre>
 $ git clone https://github.com/cryptomessaging/persona-service.git
 $ cd persona-service
 $ npm install
 $ export LOCAL_S3_SIMULATOR_DIR=~/s3simulator
 $ export PERSONAS_S3_BUCKET=personas.mydomain.com
-$ export PERSONAS_CONTROLLER_PATH_PREFIX=/v1
+$ export PERSONAS_CONTROLLER_PATHNAME_PREFIX=/v1
 $ node index
 </pre>
 
-Install a command line interface (EdSig) for interacting with the Persona Service:
+2. Install a command line interface (EdSig) for interacting with the Persona Service:
 <pre>
 $ npm install -g edsig-cli    
-</pre> 
+</pre>
+
+3. Read the [EdSig README](https://github.com/cryptomessaging/edsig) for a tutorial on the commands.  Your local persona service is available at http://localhost:3030 or you can interact with the Alpha Persona Service at https://personas.cryptomessaging.org
+
 
 ## API
 
@@ -36,7 +39,7 @@ The Persona service uses elliptic curve cryptography to digitally sign requests 
 
 To create a new persona nicknamed Satoshi using the edsig command line tool:
 <pre>
-$ edsig persona add "Satoshi"
+$ edsig persona create "Satoshi"
 </pre>
 
 The above command echoes the new persona as JSON to the screen, and also writes that file to the ~/.cryptomessaging directory in a new directory with the same name as the newly created persona id, and in that new directory a file named persona.json
