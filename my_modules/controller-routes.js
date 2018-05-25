@@ -4,6 +4,7 @@ const edsig = require('edsig')
 const net = require('./net')
 
 const DEBUG = true;
+const PERSONAS_CONTROLLER_PATHNAME_PREFIX = process.env.PERSONAS_CONTROLLER_PATHNAME_PREFIX || '';
 
 module.exports = function( express, s3 ) {
     var router = express.Router();
@@ -66,7 +67,8 @@ module.exports = function( express, s3 ) {
     // If there's an authorization header, then process header
     router.use(function(req, res, next) {
         try {
-            let auth = edsig.verifyRequestSignature( req );
+            const path = PERSONAS_CONTROLLER_PATHNAME_PREFIX + req.originalUrl;
+            let auth = edsig.verifyRequestSignature( path, req );
             if( !auth ) {
                 // they didn't pass an authorization header, but we need one to continue
                 return net.signalNotOk(req,res,[4],'Request requires EdSig authentication');
@@ -123,13 +125,12 @@ module.exports = function( express, s3 ) {
 // through the complete the complete URL pathname, in which case the
 // PERSONAS_CONTROLLER_PATHNAME_PREFIX can be used to adjust it.
 function controllerBaseUrl(req) {
-    const PERSONAS_CONTROLLER_PATHNAME_PREFIX = process.env.PERSONAS_CONTROLLER_PATHNAME_PREFIX || '';
     const protocol = process.env.PERSONAS_CONTROLLER_PROTOCOL || req.protocol;
 
     let url = protocol + "://" + req.get('host') + req.originalUrl;
     url = url.split('?')[0];    // just in case there's a query string
     let lastSlash = url.lastIndexOf('/');
     let fixedurl = url.substring(0,lastSlash) + PERSONAS_CONTROLLER_PATHNAME_PREFIX;
-    if( DEBUG ) console.log('controllerBaseUrl()', url, fixedurl );
+    if( DEBUG ) console.log('controllerBaseUrl()', url, fixedurl, req.url );
     return fixedurl;
 }
