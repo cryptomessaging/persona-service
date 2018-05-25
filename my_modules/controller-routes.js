@@ -120,8 +120,9 @@ module.exports = function( express, s3 ) {
 // PERSONAS_CONTROLLER_PATHNAME_PREFIX can be used to adjust it.
 function controllerBaseUrl(req) {
     const PERSONAS_CONTROLLER_PATHNAME_PREFIX = process.env.PERSONAS_CONTROLLER_PATHNAME_PREFIX || '';
+    const protocol = process.env.PERSONAS_CONTROLLER_PROTOCOL || req.protocol;
 
-    let url = req.protocol + "://" + req.get('host') + req.originalUrl;
+    let url = protocol + "://" + req.get('host') + req.originalUrl;
     url = url.split('?')[0];    // just in case there's a query string
     let lastSlash = url.lastIndexOf('/');
     let fixedurl = url.substring(0,lastSlash) + PERSONAS_CONTROLLER_PATHNAME_PREFIX;
