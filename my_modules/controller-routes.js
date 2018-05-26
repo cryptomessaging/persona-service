@@ -90,7 +90,7 @@ module.exports = function( express, s3 ) {
 
         try {
             // make sure the content is certified
-            let pathname = '/personas/' + req.params.pid + '/' + req.params.path;
+            let pathname = 'personas/' + req.params.pid + '/' + req.params.path;
             let cert = edsig.verifyContentSignature( pathname, req );
 
             if( req.params.pid != cert.pid )
