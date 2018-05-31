@@ -90,7 +90,7 @@ module.exports = function( express, s3 ) {
 
         try {
             // make sure the content is certified
-            let pathname = 'personas/' + req.params.pid + '/' + req.params.path;
+            let pathname = req.headers['x-content-path'];   // OK to be null
             let cert = edsig.verifyContentSignature( pathname, req );
 
             if( req.params.pid != cert.pid )
@@ -105,7 +105,11 @@ module.exports = function( express, s3 ) {
                 },
                 contentType: req.headers['content-type']
             };
-            s3.saveMedia(pathname,media,options,(err,result) => {
+            if( pathname )
+                options.metadata['content-path'] = pathname;
+
+            let fullpath = 'personas/' + req.params.pid + '/' + req.params.path;
+            s3.saveMedia(fullpath,media,options,(err,result) => {
                 if(err)
                     net.signalError(req,res,err);
                 else
@@ -120,6 +124,8 @@ module.exports = function( express, s3 ) {
     console.log( 'Controller API routes are ready' );
     return router;
 }
+
+
 
 // Determine the this services controller base url.  Some platforms, like Lambda, don't pass
 // through the complete the complete URL pathname, in which case the
