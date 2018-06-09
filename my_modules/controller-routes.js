@@ -68,12 +68,13 @@ module.exports = function( express, s3 ) {
     router.use(function(req, res, next) {
         try {
             const path = PERSONAS_CONTROLLER_PATHNAME_PREFIX + req.originalUrl;
-            let auth = edsig.verifyRequestSignature( path, req );
+            let auth = edsig.verifyAuthorization( path, req );
             if( !auth ) {
                 // they didn't pass an authorization header, but we need one to continue
                 return net.signalNotOk(req,res,[4],'Request requires EdSig authentication');
             }
             
+            auth.pid = auth.keypath.pid();  // for convenience
             req.auth = auth;
             next();
         } catch(err) {
@@ -84,24 +85,25 @@ module.exports = function( express, s3 ) {
     });
 
     router.post( '/personas/:pid/:path(*)',function(req,res){
-        // make sure :pid matches auth
+        // make sure :pid matches authorization
         if( req.params.pid != req.auth.pid )
             return net.signalNotOk(req,res,[4],'EdSig authentication doesnt match pid');
 
         try {
             // make sure the content is certified
             let pathname = req.headers['x-content-path'];   // OK to be null
-            let cert = edsig.verifyContentSignature( pathname, req );
+            let cert = edsig.verifyCertification( pathname, req );
 
-            if( req.params.pid != cert.pid )
-                return net.signalNotOk(req,res,[4],'EdSig certification doesnt match pid');
+            let certPid = edsig.Keypath.toPid( cert.keypath );
+            if( req.params.pid != certPid )
+                console.log( 'Warning? EdSig certification doesnt match authorization pid' );
 
             let media = req.body;
             let options = {
                 metadata: {
                     "certification": req.headers['x-certification'],
                     "content-hash": req.headers['x-content-hash'],
-                    "created": req.headers['x-created']
+                    "content-created": req.headers['x-content-created']
                 },
                 contentType: req.headers['content-type']
             };

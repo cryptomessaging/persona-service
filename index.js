@@ -3,6 +3,9 @@
 // (For Lambda, see lambda.js)
 //
 
+global.DEBUG = true;
+global.VERBOSE = true;
+
 // On multicore machines, fire up more than one worker
 const cluster = require('cluster');
 if(false && cluster.isMaster) {
