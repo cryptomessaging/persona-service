@@ -14,9 +14,9 @@ The following assumes you have installed Git and Node.js, and are running on a M
 $ git clone https://github.com/cryptomessaging/persona-service.git
 $ cd persona-service
 $ npm install
-$ export LOCAL_S3_SIMULATOR_DIR=~/s3simulator
-$ export PERSONAS_S3_BUCKET=personas.mydomain.com
-$ export PERSONAS_CONTROLLER_PATHNAME_PREFIX=/v1
+$ export LOCAL\_S3\_SIMULATOR_DIR=~/s3simulator
+$ export PERSONAS\_S3\_BUCKET=personas.mydomain.com
+$ export PERSONAS\_CONTROLLER\_PATHNAME_PREFIX=/v1
 $ node index
 </pre>
 
@@ -54,8 +54,8 @@ The following examples in this README will use the Satoshi persona for authoriza
 Read requests are serviced by CloudFront, do not require authentication, and generally follow the pattern of returning an HTTP status 200 and the response body.  ALL requests to paths under /personas will include the following response headers:
 
 - x-certification: EdSig ...
-- x-created: <date>
-- x-content-hash: CRC32C value
+- x-content-created: &lt;date&gt;
+- x-content-hash: SHA3 &lt;base64url&gt;
 - content-type:
 - content-length:
 
@@ -88,16 +88,19 @@ An HTTP 200 response indicates success.  Due to the nature of edge caching, new 
 - 204 Content not available
 
 Create or update existing persona file:
-POST /personas/:personaid/metapage.json
+<pre>
+POST /personas/:personaid/persona.json
+</pre>
 
 Delete persona file:
+<pre>
 DELETE /personas/:personaid/path...
+</pre>
 
 Delete entire persona:
+<pre>
 DELETE /personas/:personaid
-
-List one persona directory:
-GET /personas/:personaid/directory 
+</pre>
 
 ### EdSig Authorization and Certification
 
@@ -136,10 +139,10 @@ keypair = An Ed25519 based keypair.  See the Elliptic NPM module for an example.
 path = original path portion of URL of request, such as '/personas/4234gsdflk23h23kj23/metapage.json'
 content-length = bytes in request body as an integer, this can be empty
 content-type = MIME type, such as 'application/json'
-created = ISO date string
-x-content-hash = CRC32C hash of the content, prefixed with 'CRC32C', i.e. 'CRC32C 12334332767'
+x-content-created = ISO date string, as claimed by the author
+x-content-hash = SHA3 hash of the content encoded as base64url, prefixed with 'SHA3', i.e. 'SHA3 12SSD334234fsd332767'
 
-summary = path + LINEFEED + content-length + LINEFEED + content-type + LINEFEED + created + LINEFEED + x-content-hash
+summary = path + LINEFEED + content-length + LINEFEED + content-type + LINEFEED + x-content-created + LINEFEED + x-content-hash
 signature = base64urlEncode( keypair.sign(summary) )
 </pre>
 
@@ -169,8 +172,7 @@ TBD
 
 ## AWS Setup for Lambda
 
-1. Create persona-service user
-    From AWS Console, IAM service:
+1. Create persona-service user.  From AWS Console, IAM service:
     - Select users from left menu
     - Click "Add user"
     - User name: persona-service
@@ -178,8 +180,7 @@ TBD
     - No groups to add to
     
 
-2. Create S3 bucket
-    From AWS Console, S3 service:
+2. Create S3 bucket.  From AWS Console, S3 service:
     - "+ Create Bucket"
     - Name: personas.cryptomessaging.org
     - Region: US-West-2
@@ -187,6 +188,7 @@ TBD
     - "Create"
 
     Set public read policy (so CloudFront can read it)
+    
     - Navigate to new Bucket
     - Click "Permissions" Tab
     - Click "Bucket Policy"
@@ -207,8 +209,7 @@ TBD
 }  
 </pre>
 
-3. Configure Cloud Front
-    From AWS Console, CloudFront service:
+3. Configure Cloud Front.  From AWS Console, CloudFront service:
     - "Create Distribution"
     - Delivery method: Web -> "Next"
     - Origin domain name: personas.cryptomessaging.org
@@ -232,7 +233,8 @@ TBD
     - Role Name: lambda-personaService-execution-role
     - "Create Role"
 
-    Open service we just created to add an inline policy
+    Open service we just created to add an inline policy:
+    
     - Click Permissions tab
     - Click "Add inline policy"
     - In service, click "Choose a service", then choose S3
@@ -255,6 +257,7 @@ TBD
     = arn:aws:lambda:us-west-2:272944513323:function:personaService
 
     personaService Configuration:
+    
     - Add trigger: API Gateway
     - Configure triggers:
     - API: Create a new API
@@ -264,9 +267,11 @@ TBD
     - "Add"
 
     Make sure to set these Environment variables
-    - PERSONAS_CONTROLLER_PATHNAME_PREFIX=v1
-    - PERSONAS_S3_BUCKET=&lt;your bucket name&gt;
-    - PERSONAS_CONTROLLER_PROTOCOL=https
+    <pre>
+    PERSONAS\_CONTROLLER\_PATHNAME_PREFIX=v1
+    PERSONAS\_S3\_BUCKET=&lt;your bucket name&gt;
+    PERSONAS\_CONTROLLER\_PROTOCOL=https
+    </pre>
 
 7. Create API proxy gateway
     - API name: personaService
@@ -274,24 +279,32 @@ TBD
     - "Create"
 
     Create Proxy Resource:
+    
     - Select personaService/ Resources from left menu
     - "Actions" -> Create Resource
     - Checkbox "configure as proxy resource"
     - Enable API Gateway CORS: checked
     - "Create Resource"
+
     - Integration type: Lambda Function Proxy
+    - Use Lambda Proxy integration: checked/true
     - Lambda Region: us-west-2
     - Lambda Function: personaService
     - "Save"
 
+    Enable Binary Media Types in Settings:
+    
+    - APIs -> personaService -> Settings
+    - Under Binary Media Types, add image/jpeg, image/png, application/octet-stream, application/pdf
+    - "Save Changes"
+
     Create Stage:
+    
     - Select APIs/personaService/Stages from left menu
     - "Create"
     - Stage name: prod
     - Deployment: <todays date/time>
-    - "Create"
-
-    https://9xpmv3ybj8.execute-api.us-west-2.amazonaws.com/v1/...
+    - "Create"    
 
 
 ## Deploy to Lambda on AWS
