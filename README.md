@@ -14,7 +14,7 @@ The following assumes you have installed Git and Node.js, and are running on a M
 $ git clone https://github.com/cryptomessaging/persona-service.git
 $ cd persona-service
 $ npm install
-$ export LOCAL\_S3\_SIMULATOR_DIR=~/s3simulator
+$ export LOCAL\_S3\_SIMULATOR\_DIR=~/s3simulator
 $ export PERSONAS\_S3\_BUCKET=personas.mydomain.com
 $ export PERSONAS\_CONTROLLER\_PATHNAME_PREFIX=/v1
 $ node index
