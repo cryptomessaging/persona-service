@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const edsig = require('edsig')
+const edsig = require('edsig')()
 const net = require('./net')
 
 const DEBUG = true;
