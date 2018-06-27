@@ -102,7 +102,6 @@ module.exports = function( express, s3 ) {
             let options = {
                 metadata: {
                     "certification": req.headers['x-certification'],
-                    "content-hash": req.headers['x-content-hash'],
                     "content-created": req.headers['x-content-created']
                 },
                 contentType: req.headers['content-type']
